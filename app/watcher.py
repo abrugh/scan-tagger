@@ -12,9 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class ScanHandler(FileSystemEventHandler):
-    def __init__(self, config, tagger):
+    def __init__(self, config, tagger, notifier):
         self.config = config
         self.tagger = tagger
+        self.notifier = notifier
         self._processing: set[str] = set()
         self._lock = threading.Lock()
 
@@ -85,22 +86,25 @@ class ScanHandler(FileSystemEventHandler):
                 new_path = file_path.parent / new_name
                 counter += 1
 
+            old_name = file_path.name
             file_path.rename(new_path)
-            logger.info("Renamed: %s → %s", file_path.name, new_path.name)
+            logger.info("Renamed: %s → %s", old_name, new_path.name)
+            self.notifier.notify_success(old_name, new_path.name)
 
-        except Exception:
+        except Exception as exc:
             logger.exception("Error processing %s", file_path.name)
+            self.notifier.notify_failure(file_path.name, exc)
         finally:
             with self._lock:
                 self._processing.discard(str(file_path))
 
 
-def start_watching(config, tagger):
+def start_watching(config, tagger, notifier):
     """Start the filesystem watcher and return the Observer."""
     watch_path = Path(config.watch_path)
     watch_path.mkdir(parents=True, exist_ok=True)
 
-    handler = ScanHandler(config, tagger)
+    handler = ScanHandler(config, tagger, notifier)
     observer = Observer()
     observer.schedule(handler, str(watch_path), recursive=False)
     observer.start()

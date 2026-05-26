@@ -31,6 +31,12 @@ Edit `config.yaml` or override with environment variables:
 | `max_summary_words` | `MAX_SUMMARY_WORDS` | `4` | Max words in filename |
 | `process_existing` | `PROCESS_EXISTING` | `false` | Rename existing files on startup |
 | `log_level` | `LOG_LEVEL` | `INFO` | Logging level |
+| `discord_webhook_url` | `DISCORD_WEBHOOK_URL` | — | Discord webhook for alerts |
+| `signal_recipient` | `SIGNAL_RECIPIENT` | — | Signal phone number for alerts |
+| `signal_port` | `SIGNAL_PORT` | `7583` | signal-cli daemon port |
+| `notify_on_success` | `NOTIFY_ON_SUCCESS` | `true` | Notify on every rename |
+| `notify_on_startup` | `NOTIFY_ON_STARTUP` | `true` | Notify when service starts |
+| `daily_summary_hour` | `DAILY_SUMMARY_HOUR` | `20` | Hour (0-23) for daily digest |
 
 ## Supported File Types
 
@@ -43,3 +49,5 @@ PDF, JPG, JPEG, PNG, TIFF, TIF
 3. **PDF → Image** — converts the first page to PNG via poppler
 4. **Azure OpenAI Vision** — sends the image for document classification
 5. **Rename** — applies `YYYY-MM-DD_Summary.ext` format with collision handling
+6. **Notify** — sends success/failure alerts via Discord and/or Signal
+7. **Daily digest** — summary of the day's renames at a configurable hour

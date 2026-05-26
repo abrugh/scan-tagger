@@ -3,9 +3,13 @@ services:
     build: .
     container_name: scan-tagger
     restart: unless-stopped
+    # host network needed for signal-cli daemon on localhost:7583
+    network_mode: host
     volumes:
       # Map your SMB share mount to /scans inside the container
       - /path/to/smb/scans:/scans
       - ./config.yaml:/app/config.yaml:ro
     environment:
       - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - SIGNAL_RECIPIENT=${SIGNAL_RECIPIENT:-}

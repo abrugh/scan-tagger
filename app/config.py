@@ -20,6 +20,14 @@ class Config:
     process_existing: bool = False
     log_level: str = "INFO"
 
+    # Notifications
+    discord_webhook_url: str = ""
+    signal_recipient: str = ""
+    signal_port: int = 7583
+    notify_on_success: bool = True
+    notify_on_startup: bool = True
+    daily_summary_hour: int = 20  # 8 PM local
+
     @classmethod
     def load(cls, config_path: str = "/app/config.yaml") -> "Config":
         config = cls()
@@ -42,6 +50,12 @@ class Config:
             "MAX_SUMMARY_WORDS": "max_summary_words",
             "PROCESS_EXISTING": "process_existing",
             "LOG_LEVEL": "log_level",
+            "DISCORD_WEBHOOK_URL": "discord_webhook_url",
+            "SIGNAL_RECIPIENT": "signal_recipient",
+            "SIGNAL_PORT": "signal_port",
+            "NOTIFY_ON_SUCCESS": "notify_on_success",
+            "NOTIFY_ON_STARTUP": "notify_on_startup",
+            "DAILY_SUMMARY_HOUR": "daily_summary_hour",
         }
 
         for env_key, attr in env_map.items():

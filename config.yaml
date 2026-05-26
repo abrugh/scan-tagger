@@ -27,3 +27,21 @@ supported_extensions:
 process_existing: false
 
 log_level: INFO
+
+# --- Notifications ---
+# Discord webhook URL (leave empty to disable)
+# discord_webhook_url: https://discord.com/api/webhooks/...
+
+# Signal recipient phone number (leave empty to disable)
+# Uses signal-cli daemon on localhost:7583
+# signal_recipient: "+15551234567"
+# signal_port: 7583
+
+# Send a notification on every successful rename (set false for failures-only)
+notify_on_success: true
+
+# Send a startup notification when the service starts
+notify_on_startup: true
+
+# Hour (0-23) to send daily summary (local time)
+daily_summary_hour: 20
