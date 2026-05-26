@@ -1,0 +1,29 @@
+# scan-tagger configuration
+# Environment variables override these values.
+
+watch_path: /scans
+
+azure_openai_endpoint: https://seasonsummarizer-resource.services.ai.azure.com
+azure_openai_deployment: gpt-5.4
+azure_openai_api_version: "2025-04-01-preview"
+# azure_openai_api_key: set via AZURE_OPENAI_API_KEY env var
+
+# How long (seconds) between file-size checks while waiting for SMB writes
+stabilization_delay: 3.0
+# How many consecutive unchanged-size checks before processing
+stabilization_checks: 3
+
+max_summary_words: 4
+
+supported_extensions:
+  - .pdf
+  - .jpg
+  - .jpeg
+  - .png
+  - .tiff
+  - .tif
+
+# Set true to rename existing files in the watch directory on startup
+process_existing: false
+
+log_level: INFO

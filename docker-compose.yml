@@ -1,0 +1,11 @@
+services:
+  scan-tagger:
+    build: .
+    container_name: scan-tagger
+    restart: unless-stopped
+    volumes:
+      # Map your SMB share mount to /scans inside the container
+      - /path/to/smb/scans:/scans
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
