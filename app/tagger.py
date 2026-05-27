@@ -89,7 +89,7 @@ class Tagger:
                     ],
                 },
             ],
-            max_tokens=50,
+            max_completion_tokens=50,
             temperature=0.1,
         )
 
