@@ -4,7 +4,7 @@ import logging
 import re
 from pathlib import Path
 
-from openai import AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 from pdf2image import convert_from_path
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,19 @@ Rules:
 class Tagger:
     def __init__(self, config):
         self.config = config
-        self.client = AzureOpenAI(
-            azure_endpoint=config.azure_openai_endpoint,
-            api_key=config.azure_openai_api_key,
-            api_version=config.azure_openai_api_version,
-        )
+        if config.llm_provider == "azure":
+            self.client = AzureOpenAI(
+                azure_endpoint=config.azure_openai_endpoint,
+                api_key=config.azure_openai_api_key,
+                api_version=config.azure_openai_api_version,
+            )
+            self.model = config.azure_openai_deployment
+        else:
+            kwargs = {"api_key": config.openai_api_key}
+            if config.openai_base_url:
+                kwargs["base_url"] = config.openai_base_url
+            self.client = OpenAI(**kwargs)
+            self.model = config.openai_model
 
     def _file_to_base64_image(self, file_path: Path) -> tuple[str, str]:
         """Convert file to base64-encoded image. Returns (b64_data, media_type)."""
@@ -64,7 +72,7 @@ class Tagger:
         b64_data, media_type = self._file_to_base64_image(file_path)
 
         response = self.client.chat.completions.create(
-            model=self.config.azure_openai_deployment,
+            model=self.model,
             messages=[
                 {
                     "role": "system",

@@ -7,10 +7,21 @@ import yaml
 @dataclass
 class Config:
     watch_path: str = "/scans"
+
+    # LLM provider: "openai" or "azure"
+    llm_provider: str = "openai"
+
+    # OpenAI settings
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+    openai_base_url: str = ""  # optional, for compatible APIs
+
+    # Azure OpenAI settings
     azure_openai_endpoint: str = ""
     azure_openai_api_key: str = ""
-    azure_openai_deployment: str = "gpt-5.4"
+    azure_openai_deployment: str = "gpt-4o"
     azure_openai_api_version: str = "2025-04-01-preview"
+
     stabilization_delay: float = 3.0
     stabilization_checks: int = 3
     max_summary_words: int = 4
@@ -41,6 +52,10 @@ class Config:
 
         env_map = {
             "WATCH_PATH": "watch_path",
+            "LLM_PROVIDER": "llm_provider",
+            "OPENAI_API_KEY": "openai_api_key",
+            "OPENAI_MODEL": "openai_model",
+            "OPENAI_BASE_URL": "openai_base_url",
             "AZURE_OPENAI_ENDPOINT": "azure_openai_endpoint",
             "AZURE_OPENAI_API_KEY": "azure_openai_api_key",
             "AZURE_OPENAI_DEPLOYMENT": "azure_openai_deployment",

@@ -20,7 +20,11 @@ def main():
 
     logger.info("scan-tagger starting up")
     logger.info("Watch path: %s", config.watch_path)
-    logger.info("Azure deployment: %s", config.azure_openai_deployment)
+    logger.info("LLM provider: %s", config.llm_provider)
+    if config.llm_provider == "azure":
+        logger.info("Azure deployment: %s", config.azure_openai_deployment)
+    else:
+        logger.info("OpenAI model: %s", config.openai_model)
 
     notifier = Notifier(config)
     tagger = Tagger(config)
