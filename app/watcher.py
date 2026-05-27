@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -75,14 +75,14 @@ class ScanHandler(FileSystemEventHandler):
                 logger.warning("Empty summary for %s — skipping", file_path.name)
                 return
 
-            today = date.today().isoformat()
+            file_date = datetime.fromtimestamp(file_path.stat().st_mtime).date().isoformat()
             suffix = file_path.suffix.lower()
-            new_name = f"{today}_{summary}{suffix}"
+            new_name = f"{file_date}_{summary}{suffix}"
             new_path = file_path.parent / new_name
 
             counter = 2
             while new_path.exists():
-                new_name = f"{today}_{summary}_{counter}{suffix}"
+                new_name = f"{file_date}_{summary}_{counter}{suffix}"
                 new_path = file_path.parent / new_name
                 counter += 1
 
