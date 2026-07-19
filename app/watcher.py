@@ -1,7 +1,8 @@
 import logging
+import subprocess
 import threading
 import time
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,23 +13,39 @@ logger = logging.getLogger(__name__)
 
 
 class ScanHandler(FileSystemEventHandler):
-    def __init__(self, config, tagger, notifier):
+    def __init__(self, config, tagger, notifier, reorienter=None):
         self.config = config
         self.tagger = tagger
         self.notifier = notifier
+        self.reorienter = reorienter
         self._processing: set[str] = set()
+        # Destinations we produce via our own rename — used to ignore the
+        # on_moved echo so we don't re-tag (and re-rename) our own output.
+        self._self_renamed: set[str] = set()
         self._lock = threading.Lock()
 
     def on_created(self, event):
         if event.is_directory:
             return
+        self._enqueue(Path(event.src_path))
 
-        file_path = Path(event.src_path)
+    def on_moved(self, event):
+        # Some scanners write to a temp file and rename it into place when done.
+        # The finished document arrives as a move, not a create.
+        if event.is_directory:
+            return
+        self._enqueue(Path(event.dest_path))
+
+    def _enqueue(self, file_path: Path):
         if file_path.suffix.lower() not in self.config.supported_extensions:
             return
 
         with self._lock:
             key = str(file_path)
+            if key in self._self_renamed:
+                # This is the move event for a file we just renamed ourselves.
+                self._self_renamed.discard(key)
+                return
             if key in self._processing:
                 return
             self._processing.add(key)
@@ -38,29 +55,73 @@ class ScanHandler(FileSystemEventHandler):
         )
         thread.start()
 
-    def _wait_for_stable(self, file_path: Path) -> bool:
-        """Poll until file size stops changing (SMB write completion)."""
-        prev_size = -1
-        stable_count = 0
+    def _is_complete(self, file_path: Path) -> bool:
+        """Verify the file is a fully-written, parseable document.
 
-        for _ in range(60):
+        Size/mtime settling alone is not enough: a scanner that pauses between
+        pages of a large multi-page scan leaves a size-stable but truncated
+        file. A complete PDF has a valid trailer/EOF, and a complete image can
+        be fully decoded — so parseability is the real "done" signal.
+        """
+        suffix = file_path.suffix.lower()
+        try:
+            if suffix == ".pdf":
+                result = subprocess.run(
+                    ["pdfinfo", str(file_path)],
+                    capture_output=True,
+                    timeout=30,
+                )
+                return result.returncode == 0
+
+            from PIL import Image
+
+            with Image.open(file_path) as img:
+                img.verify()
+            return True
+        except Exception as exc:
+            logger.debug(
+                "Completeness check not yet passing for %s: %s", file_path.name, exc
+            )
+            return False
+
+    def _wait_for_stable(self, file_path: Path) -> bool:
+        """Wait until the file is fully written and parseable.
+
+        Requires size AND mtime to hold steady for `stabilization_checks`
+        consecutive polls, then confirms the document actually parses before
+        handing it off. Gives up after `stabilization_timeout` seconds.
+        """
+        prev_sig = None
+        stable_count = 0
+        deadline = time.monotonic() + self.config.stabilization_timeout
+
+        while time.monotonic() < deadline:
             try:
-                current_size = file_path.stat().st_size
+                st = file_path.stat()
             except FileNotFoundError:
                 logger.warning("File disappeared before processing: %s", file_path.name)
                 return False
 
-            if current_size == prev_size and current_size > 0:
+            sig = (st.st_size, st.st_mtime)
+            if sig == prev_sig and st.st_size > 0:
                 stable_count += 1
                 if stable_count >= self.config.stabilization_checks:
-                    return True
+                    if self._is_complete(file_path):
+                        return True
+                    # Size settled but the document isn't complete yet — the
+                    # scanner is likely paused mid multi-page write. Keep waiting.
+                    logger.info(
+                        "%s is size-stable but not yet complete — still uploading",
+                        file_path.name,
+                    )
+                    stable_count = 0
             else:
                 stable_count = 0
 
-            prev_size = current_size
+            prev_sig = sig
             time.sleep(self.config.stabilization_delay)
 
-        logger.warning("File never stabilized: %s", file_path.name)
+        logger.warning("File never stabilized (timeout): %s", file_path.name)
         return False
 
     def _process_file(self, file_path: Path):
@@ -69,6 +130,13 @@ class ScanHandler(FileSystemEventHandler):
 
             if not self._wait_for_stable(file_path):
                 return
+
+            if self.reorienter is not None:
+                try:
+                    self.reorienter.correct(file_path)
+                except Exception:
+                    # Orientation is best-effort — never let it block tagging.
+                    logger.exception("Reorientation failed for %s", file_path.name)
 
             summary = self.tagger.generate_name(file_path)
             if not summary:
@@ -87,6 +155,8 @@ class ScanHandler(FileSystemEventHandler):
                 counter += 1
 
             old_name = file_path.name
+            with self._lock:
+                self._self_renamed.add(str(new_path))
             file_path.rename(new_path)
             logger.info("Renamed: %s → %s", old_name, new_path.name)
             self.notifier.notify_success(old_name, new_path.name)
@@ -99,12 +169,12 @@ class ScanHandler(FileSystemEventHandler):
                 self._processing.discard(str(file_path))
 
 
-def start_watching(config, tagger, notifier):
+def start_watching(config, tagger, notifier, reorienter=None):
     """Start the filesystem watcher and return the Observer."""
     watch_path = Path(config.watch_path)
     watch_path.mkdir(parents=True, exist_ok=True)
 
-    handler = ScanHandler(config, tagger, notifier)
+    handler = ScanHandler(config, tagger, notifier, reorienter)
     observer = Observer()
     observer.schedule(handler, str(watch_path), recursive=False)
     observer.start()

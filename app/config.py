@@ -24,6 +24,9 @@ class Config:
 
     stabilization_delay: float = 3.0
     stabilization_checks: int = 3
+    stabilization_timeout: float = 300.0
+    reorient_enabled: bool = True
+    min_orientation_confidence: float = 1.0
     max_summary_words: int = 4
     supported_extensions: list = field(
         default_factory=lambda: [".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif"]
@@ -62,6 +65,9 @@ class Config:
             "AZURE_OPENAI_API_VERSION": "azure_openai_api_version",
             "STABILIZATION_DELAY": "stabilization_delay",
             "STABILIZATION_CHECKS": "stabilization_checks",
+            "STABILIZATION_TIMEOUT": "stabilization_timeout",
+            "REORIENT_ENABLED": "reorient_enabled",
+            "MIN_ORIENTATION_CONFIDENCE": "min_orientation_confidence",
             "MAX_SUMMARY_WORDS": "max_summary_words",
             "PROCESS_EXISTING": "process_existing",
             "LOG_LEVEL": "log_level",

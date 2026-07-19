@@ -4,6 +4,7 @@ import sys
 
 from .config import Config
 from .notifier import DailySummaryThread, Notifier
+from .reorienter import Reorienter
 from .tagger import Tagger
 from .watcher import start_watching
 
@@ -25,10 +26,14 @@ def main():
         logger.info("Azure deployment: %s", config.azure_openai_deployment)
     else:
         logger.info("OpenAI model: %s", config.openai_model)
+    logger.info(
+        "Reorientation: %s", "enabled" if config.reorient_enabled else "disabled"
+    )
 
     notifier = Notifier(config)
     tagger = Tagger(config)
-    observer = start_watching(config, tagger, notifier)
+    reorienter = Reorienter(config)
+    observer = start_watching(config, tagger, notifier, reorienter)
 
     # Daily summary thread
     summary_thread = DailySummaryThread(notifier, config.daily_summary_hour)

@@ -18,10 +18,17 @@ openai_model: gpt-4o
 # azure_openai_deployment: gpt-4o
 # azure_openai_api_version: "2025-04-01-preview"
 
-# How long (seconds) between file-size checks while waiting for SMB writes
+# How long (seconds) between size/mtime checks while waiting for SMB writes
 stabilization_delay: 3.0
-# How many consecutive unchanged-size checks before processing
+# How many consecutive unchanged size+mtime checks before validating the file
 stabilization_checks: 3
+# Max seconds to wait for a scan to finish uploading before giving up
+stabilization_timeout: 300.0
+
+# Auto-correct rotated scans (landscape docs scanned in portrait) via Tesseract OSD
+reorient_enabled: true
+# Minimum OSD orientation confidence required before rotating (higher = safer)
+min_orientation_confidence: 1.0
 
 max_summary_words: 4
 
